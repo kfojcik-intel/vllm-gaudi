@@ -158,9 +158,8 @@ def test_hf_processor_call_kwargs(
     result = ctx.call_hf_processor(processor, multimodal_data, inference_kwargs)
 
     # Check that tensors are on expected device
-    if "pixel_values" in result:
-        if isinstance(result["pixel_values"], torch.Tensor):
-            assert str(result["pixel_values"].device).startswith(expected_device)
+    if "pixel_values" in result and isinstance(result["pixel_values"], torch.Tensor):
+        assert str(result["pixel_values"].device).startswith(expected_device)
 
     if "input_ids" in result:
         assert str(result["input_ids"].device).startswith(expected_device)
@@ -194,9 +193,6 @@ def test_hpu_token_replacement():
 
 def test_hpu_placeholder_features():
     """Test placeholder features info for HPU."""
-    # Simulate HPU multimodal features
-    device = "hpu"
-
     # Create feature info
     features_info = PlaceholderFeaturesInfo(modality="image",
                                             item_idx=0,
@@ -209,9 +205,6 @@ def test_hpu_placeholder_features():
     assert features_info.item_idx == 0
     assert features_info.start_idx == 2
     assert features_info.tokens == [100, 101, 102, 103]
-
-    # Test with HPU tensor
-    feature_tensor = torch.randn(4, 768, device=device, dtype=torch.bfloat16)
 
     # Simulate feature replacement
     token_ids = [1, 2, 3, 4, 5]  # Before replacement
