@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 """
 Unit tests for vLLM multimodal processing components on HPU/Gaudi.
 Inspired by upstream test_processing.py but adapted for Gaudi-specific scenarios.
@@ -14,18 +13,14 @@ import habana_frameworks.torch  # noqa: F401
 
 from vllm.config import ModelConfig
 from vllm.inputs import InputProcessingContext
-from vllm.multimodal.processing import (PlaceholderFeaturesInfo,
-                                        iter_token_matches,
-                                        replace_token_matches)
+from vllm.multimodal.processing import (PlaceholderFeaturesInfo, iter_token_matches, replace_token_matches)
 from vllm.transformers_utils.tokenizer import AnyTokenizer
 
 
 class DummyHPUProcessor:
     """Dummy processor that simulates HPU-specific multimodal processing."""
 
-    def __init__(self,
-                 hpu_optimized: bool = True,
-                 precision: str = "bfloat16") -> None:
+    def __init__(self, hpu_optimized: bool = True, precision: str = "bfloat16") -> None:
         super().__init__()
         self.hpu_optimized = hpu_optimized
         self.precision = precision
@@ -41,10 +36,10 @@ class DummyHPUProcessor:
     ) -> dict:
         """Process multimodal inputs for HPU."""
         result = {}
-    
+
         # Use HPU device if available
         target_device = device or self.device
-    
+
         if images is not None:
             if isinstance(images, list):
                 # Batch processing
@@ -62,8 +57,7 @@ class DummyHPUProcessor:
 
                     image_tensors.append(tensor)
 
-                result["pixel_values"] = torch.stack(image_tensors) if len(
-                    image_tensors) > 1 else image_tensors[0]
+                result["pixel_values"] = torch.stack(image_tensors) if len(image_tensors) > 1 else image_tensors[0]
             else:
                 # Single image
                 if isinstance(images, torch.Tensor):
@@ -80,14 +74,9 @@ class DummyHPUProcessor:
             # Simulate text tokenization for HPU
             if isinstance(text, list):
                 max_len = max(len(t.split()) for t in text) if text else 10
-                input_ids = torch.randint(1,
-                                          1000, (len(text), max_len),
-                                          device=target_device)
+                input_ids = torch.randint(1, 1000, (len(text), max_len), device=target_device)
             else:
-                input_ids = torch.randint(
-                    1,
-                    1000, (1, len(text.split()) if text else 10),
-                    device=target_device)
+                input_ids = torch.randint(1, 1000, (1, len(text.split()) if text else 10), device=target_device)
 
             result["input_ids"] = input_ids
             result["attention_mask"] = torch.ones_like(input_ids)
@@ -161,23 +150,17 @@ def test_hf_processor_call_kwargs(
         tokenizer=mock_tokenizer,
     )
 
-    processor = ctx.get_hf_processor(
-        DummyHPUProcessor)  # type: ignore[arg-type]
+    processor = ctx.get_hf_processor(DummyHPUProcessor)  # type: ignore[arg-type]
 
     # Create dummy multimodal data
-    multimodal_data = {
-        "images": torch.randn(1, 3, 224, 224),
-        "text": ["Test prompt"]
-    }
+    multimodal_data = {"images": torch.randn(1, 3, 224, 224), "text": ["Test prompt"]}
 
-    result = ctx.call_hf_processor(processor, multimodal_data,
-                                   inference_kwargs)
+    result = ctx.call_hf_processor(processor, multimodal_data, inference_kwargs)
 
     # Check that tensors are on expected device
     if "pixel_values" in result:
         if isinstance(result["pixel_values"], torch.Tensor):
-            assert str(
-                result["pixel_values"].device).startswith(expected_device)
+            assert str(result["pixel_values"].device).startswith(expected_device)
 
     if "input_ids" in result:
         assert str(result["input_ids"].device).startswith(expected_device)
@@ -187,10 +170,9 @@ def test_hpu_token_replacement():
     """Test token replacement with HPU-specific considerations."""
     # Create dummy token list on HPU
     device = "hpu"
-    prompt_tokens = [1, 2, 3, 4, 5, 6,
-                     7]  # [CLS] Hello <image> world [SEP] [PAD] [PAD]
+    prompt_tokens = [1, 2, 3, 4, 5, 6, 7]  # [CLS] Hello <image> world [SEP] [PAD] [PAD]
     target_token_ids = [3]  # <image> token as list
-    
+
     # Define replacement tokens (simulating image feature tokens)
     replacement_tokens = [100, 101, 102, 103]  # Image feature tokens
 
@@ -200,8 +182,7 @@ def test_hpu_token_replacement():
     assert matches[0].end_idx == 3
 
     # Apply replacement
-    new_tokens = replace_token_matches(prompt_tokens, target_token_ids,
-                                       replacement_tokens)
+    new_tokens = replace_token_matches(prompt_tokens, target_token_ids, replacement_tokens)
     expected = [1, 2, 100, 101, 102, 103, 4, 5, 6, 7]
     assert new_tokens == expected
 

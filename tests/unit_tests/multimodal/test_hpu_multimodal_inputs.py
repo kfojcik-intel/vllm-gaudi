@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 """
 Unit tests for vLLM multimodal input handling on HPU/Gaudi.
 Inspired by upstream test_inputs.py but adapted for Gaudi-specific scenarios.
@@ -13,8 +12,7 @@ import habana_frameworks.torch  # noqa: F401
 from vllm.multimodal.inputs import MultiModalKwargs, NestedTensors
 
 
-def assert_nested_tensors_equal_hpu(expected: NestedTensors,
-                                    actual: NestedTensors):
+def assert_nested_tensors_equal_hpu(expected: NestedTensors, actual: NestedTensors):
     """HPU-aware assertion for nested tensor equality."""
     assert type(expected) == type(actual)  # noqa: E721
     if isinstance(expected, torch.Tensor):
@@ -24,8 +22,7 @@ def assert_nested_tensors_equal_hpu(expected: NestedTensors,
             assert_nested_tensors_equal_hpu(expected_item, actual_item)
 
 
-def assert_multimodal_inputs_equal_hpu(expected: MultiModalKwargs,
-                                       actual: MultiModalKwargs):
+def assert_multimodal_inputs_equal_hpu(expected: MultiModalKwargs, actual: MultiModalKwargs):
     """HPU-aware assertion for multimodal input equality."""
     assert set(expected.keys()) == set(actual.keys())
     for key in expected:
@@ -142,11 +139,11 @@ def test_hpu_nested_multimodal_batch():
             assert str(tensor.device).startswith(device)
             assert tensor.dtype == torch.bfloat16
 
-@pytest.mark.parametrize(
-    "tensor_dtypes",
-    [(torch.float32, torch.bfloat16),
-     (torch.bfloat16, torch.float32),
-    ])
+
+@pytest.mark.parametrize("tensor_dtypes", [
+    (torch.float32, torch.bfloat16),
+    (torch.bfloat16, torch.float32),
+])
 def test_hpu_mixed_precision_batch(tensor_dtypes):
     """Test handling mixed precision tensors on HPU."""
     device = "hpu"
@@ -187,12 +184,8 @@ def test_hpu_empty_batch():
 def test_hpu_device_mismatch_handling(tensor_shapes):
     """Test handling device mismatches in multimodal batching."""
     # Create tensors on different devices
-    hpu_tensor = torch.rand(tensor_shapes[0],
-                            device="hpu",
-                            dtype=torch.bfloat16)
-    cpu_tensor = torch.rand(tensor_shapes[1],
-                            device="cpu",
-                            dtype=torch.bfloat16)
+    hpu_tensor = torch.rand(tensor_shapes[0], device="hpu", dtype=torch.bfloat16)
+    cpu_tensor = torch.rand(tensor_shapes[1], device="cpu", dtype=torch.bfloat16)
     # Batching with device mismatch should handle gracefully
     batch_data = [{"image": hpu_tensor}, {"image": cpu_tensor}]
 
@@ -242,18 +235,13 @@ def test_hpu_multimodal_kwargs_keys():
     device = "hpu"
 
     # Test multiple modalities
-    image_tensor = torch.rand([3, 224, 224],
-                              device=device,
-                              dtype=torch.bfloat16)
+    image_tensor = torch.rand([3, 224, 224], device=device, dtype=torch.bfloat16)
     audio_tensor = torch.rand([1000], device=device, dtype=torch.bfloat16)
 
     batch_data = [{"image": image_tensor, "audio": audio_tensor}]
 
     result = MultiModalKwargs.batch(batch_data)
-    expected = {
-        "image": image_tensor.unsqueeze(0),
-        "audio": audio_tensor.unsqueeze(0)
-    }
+    expected = {"image": image_tensor.unsqueeze(0), "audio": audio_tensor.unsqueeze(0)}
 
     assert_multimodal_inputs_equal_hpu(result, expected)
 
