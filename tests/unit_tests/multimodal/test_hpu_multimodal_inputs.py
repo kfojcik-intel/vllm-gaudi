@@ -145,10 +145,8 @@ def test_hpu_nested_multimodal_batch():
 @pytest.mark.parametrize(
     "tensor_dtypes",
     [(torch.float32, torch.bfloat16),
-     pytest.param(
-         (torch.bfloat16, torch.float32),
-         marks=pytest.mark.xfail(
-             reason="Mixed precision (bf16+fp32) not supported on HPU"))])
+     (torch.bfloat16, torch.float32),
+    ])
 def test_hpu_mixed_precision_batch(tensor_dtypes):
     """Test handling mixed precision tensors on HPU."""
     device = "hpu"
