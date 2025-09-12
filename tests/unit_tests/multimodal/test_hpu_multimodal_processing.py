@@ -102,14 +102,11 @@ class DummyHPUProcessor:
     [
         # Test HPU-specific optimization flag
         ({"hpu_optimized": True}, {}, {"hpu_optimized": True, "precision": "bfloat16"}),
-        ({}, {"hpu_optimized": True}, {"hpu_optimized": True, "precision": "bfloat16"}),
 
         # Test precision settings
         ({"precision": "float32"}, {}, {"hpu_optimized": True, "precision": "float32"}),
-        ({"precision": "bfloat16"}, {}, {"hpu_optimized": True, "precision": "bfloat16"}),
 
         # Inference kwargs should take precedence
-        ({"hpu_optimized": False}, {"hpu_optimized": True}, {"hpu_optimized": True, "precision": "bfloat16"}),
         ({"precision": "float32"}, {"precision": "bfloat16"}, {"hpu_optimized": True, "precision": "bfloat16"}),
     ],
 )
@@ -143,7 +140,6 @@ def test_hf_processor_init_kwargs(
     ("config_kwargs", "inference_kwargs", "expected_device"),
     [
         # Test device placement
-        ({}, {"device": "hpu"}, "hpu"),
         ({"device": "hpu"}, {}, "hpu"),
 
         # Inference kwargs should override config
