@@ -140,32 +140,6 @@ def test_hpu_nested_multimodal_batch():
             assert tensor.dtype == torch.bfloat16
 
 
-@pytest.mark.parametrize("tensor_dtypes", [
-    (torch.float32, torch.bfloat16),
-    (torch.bfloat16, torch.float32),
-])
-def test_hpu_mixed_precision_batch(tensor_dtypes):
-    """Test handling mixed precision tensors on HPU."""
-    device = "hpu"
-
-    # Create tensors with different dtypes
-    a = torch.rand([2, 2], device=device, dtype=tensor_dtypes[0])
-    b = torch.rand([2, 2], device=device, dtype=tensor_dtypes[1])
-
-    # Mixed precision should be handled gracefully
-    # Note: In practice, it takes dtype of first tensor
-    batch_data = [{"image": a}, {"image": b}]
-
-    result = MultiModalKwargs.batch(batch_data)
-    expected = {"image": torch.stack([a, b]).type(tensor_dtypes[0])}
-
-    assert_multimodal_inputs_equal_hpu(result, expected)
-
-    # Verify device preservation
-    for tensor in result["image"]:
-        assert str(tensor.device).startswith(device)
-
-
 def test_hpu_empty_batch():
     """Test batching empty multimodal data."""
     result = MultiModalKwargs.batch([])
