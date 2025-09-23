@@ -16,19 +16,6 @@ from vllm.inputs import InputProcessingContext
 from vllm.multimodal.processing import (PlaceholderFeaturesInfo, iter_token_matches, replace_token_matches)
 from vllm.transformers_utils.tokenizer import AnyTokenizer
 
-# Monkey-patch to remove _run_in_subprocess from registry
-try:
-    from vllm.model_executor.models.registry import _BaseRegisteredModel, _ModelInfo
-
-    def _patched_inspect_model_cls(self):
-        """Patched version that bypasses _run_in_subprocess."""
-        return _ModelInfo.from_model_cls(self.load_model_cls())
-
-    # Apply the monkey-patch
-    _BaseRegisteredModel.inspect_model_cls = _patched_inspect_model_cls
-except ImportError:
-    pass
-
 
 class DummyHPUProcessor:
     """Dummy processor that simulates HPU-specific multimodal processing."""
@@ -98,7 +85,7 @@ class DummyHPUProcessor:
 
 
 # yapf: disable
-@pytest.mark.parametrize("model_id", ["Qwen/Qwen2-VL-2B-Instruct"])  # Dummy
+@pytest.mark.parametrize("model_id", ["/mnt/weka/llm/Qwen2.5-VL-3B-Instruct"])  # Dummy
 @pytest.mark.parametrize(
     ("config_kwargs", "inference_kwargs", "expected_attrs"),
     [
@@ -137,7 +124,7 @@ def test_hf_processor_init_kwargs(
 
 
 # yapf: disable
-@pytest.mark.parametrize("model_id", ["Qwen/Qwen2-VL-2B-Instruct"])  # Dummy
+@pytest.mark.parametrize("model_id", ["/mnt/weka/llm/Qwen2.5-VL-3B-Instruct"])  # Dummy
 @pytest.mark.parametrize(
     ("config_kwargs", "inference_kwargs", "expected_device"),
     [
