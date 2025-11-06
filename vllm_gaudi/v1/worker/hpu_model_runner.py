@@ -3030,7 +3030,7 @@ class HPUModelRunner(KVConnectorModelRunnerMixin):
         # postprocessing. Should it be done for all requests?
         structured_output = False
         spec_decode_num_tokens = None
-        if scheduler_output.grammar_bitmask is not None:
+        if getattr(scheduler_output, "grammar_bitmask", None) is not None:
             logits_prompt = []
             logits_decode = []
             structured_output = True
