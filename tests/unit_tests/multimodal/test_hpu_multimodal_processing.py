@@ -12,8 +12,7 @@ import torch
 import habana_frameworks.torch  # noqa: F401
 
 from vllm.config import ModelConfig
-from vllm.inputs import InputProcessingContext
-from vllm.multimodal.processing import (PlaceholderFeaturesInfo, iter_token_matches, replace_token_matches)
+from vllm.multimodal.processing import (InputProcessingContext, PlaceholderFeaturesInfo, iter_token_matches, replace_token_matches)
 from vllm.transformers_utils.tokenizer import AnyTokenizer
 
 
