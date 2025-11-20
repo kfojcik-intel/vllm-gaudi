@@ -4,7 +4,7 @@
 Unit tests for vLLM multimodal processing components on HPU/Gaudi.
 Inspired by upstream test_processing.py but adapted for Gaudi-specific scenarios.
 """
-
+import os
 from typing import Optional, cast
 
 import pytest
@@ -85,7 +85,7 @@ class DummyHPUProcessor:
 
 
 # yapf: disable
-@pytest.mark.parametrize("model_id", ["/mnt/weka/llm/Qwen2.5-VL-3B-Instruct"])  # Dummy
+@pytest.mark.parametrize("model_id", [os.path.join(os.path.dirname(__file__), "dummy-model-config")])  # Dummy
 @pytest.mark.parametrize(
     ("config_kwargs", "inference_kwargs", "expected_attrs"),
     [
@@ -108,7 +108,6 @@ def test_hf_processor_init_kwargs(
 ):
     """Test that HPU processor is initialized with correct kwargs."""
     mock_tokenizer = cast(AnyTokenizer, object())
-
     ctx = InputProcessingContext(
         model_config=ModelConfig(model_id, mm_processor_kwargs=config_kwargs),
         tokenizer=mock_tokenizer,
@@ -124,7 +123,7 @@ def test_hf_processor_init_kwargs(
 
 
 # yapf: disable
-@pytest.mark.parametrize("model_id", ["/mnt/weka/llm/Qwen2.5-VL-3B-Instruct"])  # Dummy
+@pytest.mark.parametrize("model_id", [os.path.join(os.path.dirname(__file__), "dummy-model-config")])  # Dummy
 @pytest.mark.parametrize(
     ("config_kwargs", "inference_kwargs", "expected_device"),
     [
