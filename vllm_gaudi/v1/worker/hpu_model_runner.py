@@ -5769,26 +5769,20 @@ class HPUModelRunner(HpuKVConnectorModelRunnerMixin):
                         # adding None for scales for dynamic quantization for now, TODO: change that once needed
                         kv_caches[layer_name] = (kc, vc, None, None)
                     elif isinstance(kv_cache_spec, MambaSpec):
-                        # This is almost the same as for gpu runner in vllm
-                        # only change is + 1 for dummy block
                         raw_tensor = kv_caches[layer_name]
                         state_tensors = []
-                        storage_offset_bytes = 0
-                        for shape, dtype in zip(kv_cache_spec.shapes, kv_cache_spec.dtypes):
-                            dtype_size = get_dtype_size(dtype)
-                            num_element_per_page = (kv_cache_spec.page_size_bytes // dtype_size)
-                            target_shape = (num_blocks + 1, *shape)
-                            stride = torch.empty(target_shape).stride()
-                            target_stride = (num_element_per_page, *stride[1:])
-                            assert storage_offset_bytes % dtype_size == 0
-                            tensor = torch.as_strided(
-                                raw_tensor,
-                                size=target_shape,
-                                stride=target_stride,
-                                storage_offset=storage_offset_bytes // dtype_size,
-                            )
+                        # Determine dtype once (raw_tensor dtype)
+                        dtype_size = raw_tensor.element_size()
+                        elements_per_page = kv_cache_spec.page_size_bytes // dtype_size
+                        # Explicitly reshape into pages
+                        pages = raw_tensor.view(num_blocks+1, elements_per_page)
+                        offset = 0
+                        for shape in kv_cache_spec.shapes:
+                            elements = int(torch.prod(torch.tensor(shape)).item())
+                            state_flat = pages[:, offset:offset + elements]
+                            tensor = state_flat.reshape(num_blocks+1, *shape)
                             state_tensors.append(tensor)
-                            storage_offset_bytes += stride[0] * dtype_size
+                            offset += elements
                         kv_caches[layer_name] = tuple(state_tensors)
                     else:
                         pass
