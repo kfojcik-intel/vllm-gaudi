@@ -2232,7 +2232,8 @@ class HPUModelRunner(HpuKVConnectorModelRunnerMixin):
 
             num_prefill_reqs = len(contents.req_ids)
             all_state_indices_cpu = []
-            for group_idx in range(len(self.input_batch.block_table.block_tables)):
+            # TODO: change -1 to number of attention groups
+            for group_idx in range(len(self.input_batch.block_table.block_tables)-1):
                 block_table_cpu_tensor = self.input_batch.block_table[group_idx].get_cpu_tensor()
 
                 state_indices_cpu = torch.zeros(num_prefill_reqs, dtype=torch.int32)
@@ -2656,9 +2657,14 @@ class HPUModelRunner(HpuKVConnectorModelRunnerMixin):
                 dummy_decode_input_data = self._create_dummy_decode_input_data()
                 return DecodeInputData(num_decodes=0), dummy_decode_input_data
             return DecodeInputData(num_decodes=0), None
+        attn_block_table = self.input_batch.block_table[self._get_attention_group_id_for_hybrid()].get_cpu_tensor()
+        # WA: non-full hybrid mode; kv cache for attn group is separated
+        nonzero_mask = attn_block_table != 0
+        attn_block_table[nonzero_mask] = (attn_block_table[nonzero_mask] % self.num_groups) + (attn_block_table[nonzero_mask] // self.num_groups)
+
         return self._create_decode_input_data(
             num_decodes, num_scheduled_tokens, self.input_batch.num_computed_tokens_cpu[:num_decodes],
-            self.input_batch.block_table[self._get_attention_group_id_for_hybrid()].get_cpu_tensor(),
+            attn_block_table,
             scheduler_output), None
 
     def _create_dummy_decode_input_data(self) -> DecodeInputData:
@@ -5707,6 +5713,7 @@ class HPUModelRunner(HpuKVConnectorModelRunnerMixin):
         self.maybe_add_kv_sharing_layers_to_kv_cache_groups(kv_cache_config)
         kv_cache_config = deepcopy(kv_cache_config)
         self.kv_cache_config = kv_cache_config
+        self.num_groups = len(kv_cache_config.kv_cache_groups)
         self.is_encoder_only_attn = False
         self.may_add_encoder_only_layers_to_kv_cache_config()
 
@@ -5804,7 +5811,7 @@ class HPUModelRunner(HpuKVConnectorModelRunnerMixin):
                     num_blocks = \
                         kv_cache_tensor_size // kv_cache_spec.page_size_bytes
                     if isinstance(kv_cache_spec, FullAttentionSpec):
-                        kv_cache_shape = self.attn_backend.get_kv_cache_shape(num_blocks + 1, kv_cache_spec.block_size,
+                        kv_cache_shape = self.attn_backend.get_kv_cache_shape(num_blocks // self.num_groups + 1, kv_cache_spec.block_size,
                                                                               kv_cache_spec.num_kv_heads,
                                                                               kv_cache_spec.head_size)
                         # here attn does not share kv cache tensor, so we create separate tensors
