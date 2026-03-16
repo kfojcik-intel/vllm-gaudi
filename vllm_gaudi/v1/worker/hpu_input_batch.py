@@ -275,7 +275,28 @@ class InputBatch:
         self.num_tokens_no_spec[req_index] = request.num_tokens
 
         self.num_computed_tokens_cpu[req_index] = request.num_computed_tokens
+        
+        row = []
+        for _ in range(9):
+            self.last_mamba_id += 1
+            row.append([self.last_mamba_id])
+            
+        group_size = len(request.block_ids[9])
+        start = self.last_attn_id + 1
+        end = start + group_size
+        group = list(range(start, end))
+
+        self.last_attn_id += group_size
+        row.append(group)
+        new_block_ids = tuple(row)
+        
+        
         self.block_table.add_row(request.block_ids, req_index)
+
+        print("add block ids old:",request.block_ids)
+        print("add block ids new:",new_block_ids)
+
+        print("init block table attn: ", self.block_table[9].get_cpu_tensor())
 
         if sampling_params := request.sampling_params:
             if sampling_params.sampling_type == SamplingType.GREEDY:

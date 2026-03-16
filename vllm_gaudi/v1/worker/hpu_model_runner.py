@@ -2657,14 +2657,10 @@ class HPUModelRunner(HpuKVConnectorModelRunnerMixin):
                 dummy_decode_input_data = self._create_dummy_decode_input_data()
                 return DecodeInputData(num_decodes=0), dummy_decode_input_data
             return DecodeInputData(num_decodes=0), None
-        attn_block_table = self.input_batch.block_table[self._get_attention_group_id_for_hybrid()].get_cpu_tensor()
-        # WA: non-full hybrid mode; kv cache for attn group is separated
-        nonzero_mask = attn_block_table != 0
-        attn_block_table[nonzero_mask] = (attn_block_table[nonzero_mask] % self.num_groups) + (attn_block_table[nonzero_mask] // self.num_groups)
 
         return self._create_decode_input_data(
             num_decodes, num_scheduled_tokens, self.input_batch.num_computed_tokens_cpu[:num_decodes],
-            attn_block_table,
+            self.input_batch.block_table[self._get_attention_group_id_for_hybrid()].get_cpu_tensor(),
             scheduler_output), None
 
     def _create_dummy_decode_input_data(self) -> DecodeInputData:
